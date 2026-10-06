@@ -52,6 +52,11 @@ Para ejecutarlas:
 npm test
 ```
 
+### Evidencia de Tests
+
+<img width="1081" height="297" alt="image" src="https://github.com/user-attachments/assets/770684b7-b8ec-45e2-ba74-a7e4bdb7e046" />
+
+
 ## Video de demostración
 
 [Ver la demostración](https://drive.google.com/file/d/1wKu3JZf484tV8OdpRtdkf75vz_lCi1LN/view?usp=sharing)
