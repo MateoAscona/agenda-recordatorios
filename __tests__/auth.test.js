@@ -10,7 +10,7 @@ describe('validación de usuario', () => {
     expect(validateCredentials('mateo', '   ')).toBe(false);
   });
 
-  test('guarda el usuario sin espacios de más', () => {
+  test('crea una cuenta quitando espacios del usuario y conservando la contraseña', () => {
     expect(createAccount(' mateo ', ' clave123 ')).toEqual({
       username: 'mateo',
       password: ' clave123 ',

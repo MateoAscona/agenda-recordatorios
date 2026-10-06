@@ -5,7 +5,7 @@ import {
 } from '@testing-library/react-native';
 import EventItem from '../EventItem';
 
-test('muestra un evento y permite eliminarlo', async () => {
+test('muestra el título y llama a eliminar con el identificador del evento', async () => {
   const onDelete = jest.fn();
   const event = {
     id: 'evento-1',

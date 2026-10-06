@@ -8,11 +8,14 @@ import {
 describe('validación de eventos', () => {
   const now = new Date(2026, 9, 3, 12, 0);
 
-  test('pide título, fecha y hora', () => {
+  test('rechaza un evento si falta título, fecha u hora', () => {
     expect(validateEvent('', '2026-10-04', '12:00', now)).toBe(
       'Completá el título.',
     );
     expect(validateEvent('Clase', '', '12:00', now)).toBe(
+      'Completá la fecha y la hora.',
+    );
+    expect(validateEvent('Clase', '2026-10-04', '', now)).toBe(
       'Completá la fecha y la hora.',
     );
   });
@@ -44,7 +47,7 @@ describe('validación de eventos', () => {
   });
 });
 
-test('convierte el selector usando fecha y hora locales, sin cambiar a UTC', () => {
+test('obtiene la fecha y la hora locales del selector', () => {
   expect(getEventDateFields(new Date(2026, 0, 4, 23, 5))).toEqual({
     date: '2026-01-04', time: '23:05',
   });
