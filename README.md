@@ -1,33 +1,57 @@
 # Agenda y recordatorios
 
-Aplicación móvil para el parcial de Aplicaciones Móviles. Opción elegida: **Agenda / Recordatorios**.
+Proyecto individual para el parcial de Aplicaciones Móviles de ISTEA.
 
-## Ejecutar
+**Autor:** Mateo Ascona
+
+**Opción elegida:** Agenda / Recordatorios
+
+## Funcionalidades
+
+- Registro e inicio de sesión con usuario y contraseña.
+- Acceso a la agenda únicamente después de iniciar sesión.
+- Creación de eventos con título, fecha y hora.
+- Listado de eventos ordenados por fecha y opción de eliminarlos.
+- Almacenamiento local con AsyncStorage para conservar la cuenta y los eventos al cerrar la app.
+- Notificaciones locales en el horario del evento y cancelación del recordatorio al eliminarlo.
+
+La aplicación no utiliza backend. La autenticación es local y guarda una única cuenta en el dispositivo.
+
+## Cómo ejecutar la app
+
+Necesitás Node.js, npm y Expo Go compatible con Expo SDK 57.
+
+Desde la carpeta del proyecto:
 
 ```bash
 npm install
 npm start
 ```
 
-Abrí el QR con Expo Go compatible con SDK 57, con el teléfono y la computadora en la misma red. Si Metro ya estaba abierto antes de actualizar el código, detenelo con Ctrl+C y ejecutá `npm start -- --clear`.
+Conectá el teléfono y la computadora a la misma red y abrí el código QR con Expo Go.
 
-## Funcionalidades
+Si necesitás limpiar la caché de desarrollo:
 
-- Registro e inicio de sesión local.
-- Alta de eventos con título, calendario y selector de hora nativos; listado y eliminación.
-- Eventos guardados en AsyncStorage para conservarlos al cerrar la app.
-- Notificación local en la fecha del evento, si se concede el permiso; al eliminarlo se cancela el aviso pendiente.
-- Pruebas con Jest y React Native Testing Library: `npm test`.
+```bash
+npm start -- --clear
+```
 
 ## Notificaciones
 
-Solo se usan notificaciones locales, disponibles en Expo Go. `localNotifications.js` importa únicamente los módulos locales para evitar que el índice de `expo-notifications` 57.0.21 inicialice push remoto y bloquee el arranque en Android. Estas rutas internas deben revisarse al actualizar el paquete. No se ocultan errores ni se desactivan recordatorios.
+Para recibir recordatorios, habilitá las notificaciones cuando la app solicite permiso. Si utilizás Expo Go, el permiso corresponde a esa aplicación.
 
-Al iniciar se solicita permiso si todavía se puede preguntar. En Android se intenta crear el canal `Eventos`; si Expo Go no ofrece esa función, se usa el canal de respaldo de Expo Notifications. En Expo Go el permiso corresponde a Expo Go; si ya fue concedido, o rechazado sin posibilidad de preguntar otra vez, no aparece otro diálogo. En Android anteriores a 13 no se pide ese permiso en tiempo de ejecución. Android puede retrasar el aviso si no permite programar alarmas exactas.
+Si las notificaciones están desactivadas o no se puede programar el aviso, el evento se guarda igualmente y la app informa que quedó sin recordatorio. Habilitar el permiso después no programa avisos para esos eventos.
 
-Si no hay permiso, se informa cómo habilitarlo en Ajustes. Si falla la programación aun con permiso, se muestra el error recibido; el evento se conserva sin recordatorio. No se agregan avisos retroactivamente a eventos guardados sin uno.
+## Tests
 
+Las pruebas utilizan Jest y React Native Testing Library. Incluyen validación de credenciales y eventos, interacción con componentes y lógica de notificaciones.
+
+Para ejecutarlas:
+
+```bash
+npm test
+```
 
 ## Video de demostración
 
-**[Link al video](https://drive.google.com/file/d/1wKu3JZf484tV8OdpRtdkf75vz_lCi1LN/view?usp=sharing)**.
+[Ver la demostración](https://drive.google.com/file/d/1wKu3JZf484tV8OdpRtdkf75vz_lCi1LN/view?usp=sharing)
