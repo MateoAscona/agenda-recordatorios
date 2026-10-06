@@ -52,6 +52,13 @@ Para ejecutarlas:
 npm test
 ```
 
+Los tests contemplan:
+- Autenticación (3): rechazan campos vacíos, crean la cuenta sin espacios extra en el usuario y comprueban las
+   credenciales.
+ - Eventos (4): validan campos obligatorios y fechas, crean y ordenan eventos, y conservan la fecha y hora locales.
+ - Item de Evento (1): muestra el título y comprueba que el botón “Eliminar” llame a la función
+   correspondiente.
+
 ### Evidencia de Tests
 
 <img width="1081" height="297" alt="image" src="https://github.com/user-attachments/assets/770684b7-b8ec-45e2-ba74-a7e4bdb7e046" />
