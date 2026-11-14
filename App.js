@@ -24,11 +24,10 @@ import EventItem from './EventItem';
 import EventDateTimePicker from './EventDateTimePicker';
 import {
   createEvent,
-  EVENT_STORAGE_KEY,
   getEventDateFields,
-  sortEvents,
   validateEvent,
 } from './events';
+import { useEventsStore } from './eventsStore';
 import {
   cancelEventNotification,
   getNotificationErrorMessage,
@@ -192,7 +191,6 @@ function RegisterScreen({ navigation }) {
 function HomeScreen({
   navigation,
   onLogout,
-  events,
   eventsLoading,
   notificationsLoading,
   eventsError,
@@ -200,6 +198,7 @@ function HomeScreen({
   notificationMessage,
   onDeleteEvent,
 }) {
+  const events = useEventsStore((state) => state.events);
   return (
     <SafeAreaView edges={['bottom']} style={styles.homeContainer}>
       <Text style={styles.title}>Mis eventos</Text>
@@ -309,7 +308,11 @@ function CreateEventScreen({ navigation, onCreateEvent }) {
 
 export default function App() {
   const [loggedIn, setLoggedIn] = useState(false);
-  const [events, setEvents] = useState([]);
+  const events = useEventsStore((state) => state.events);
+  const loadEvents = useEventsStore((state) => state.loadEvents);
+  const addEvent = useEventsStore((state) => state.addEvent);
+  const deleteEvent = useEventsStore((state) => state.deleteEvent);
+  const clearEvents = useEventsStore((state) => state.clearEvents);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [eventsError, setEventsError] = useState('');
   const [actionError, setActionError] = useState('');
@@ -352,7 +355,7 @@ export default function App() {
 
   useEffect(() => {
     if (!loggedIn) {
-      setEvents([]);
+      clearEvents();
       setEventsLoading(false);
       setEventsError('');
       setActionError('');
@@ -365,16 +368,7 @@ export default function App() {
 
     async function loadEvents() {
       try {
-        const savedEvents = await AsyncStorage.getItem(EVENT_STORAGE_KEY);
-        const parsedEvents = savedEvents ? JSON.parse(savedEvents) : [];
-
-        if (!Array.isArray(parsedEvents)) {
-          throw new Error('Los eventos guardados no son una lista.');
-        }
-
-        if (active) {
-          setEvents(sortEvents(parsedEvents));
-        }
+        await loadEvents(() => active);
       } catch {
         if (active) {
           setEventsError('No se pudieron cargar los eventos guardados.');
@@ -406,28 +400,22 @@ export default function App() {
     }
 
     const savedEvent = { ...event, notificationId };
-    const updatedEvents = sortEvents([...events, savedEvent]);
-
     try {
-      await AsyncStorage.setItem(EVENT_STORAGE_KEY, JSON.stringify(updatedEvents));
+      await addEvent(savedEvent);
     } catch (error) {
       await cancelEventNotification(notificationId).catch(() => null);
       throw error;
     }
 
-    setEvents(updatedEvents);
     setActionError('');
     setNotificationMessage(warning);
   }
 
   async function handleDeleteEvent(eventId) {
     const eventToDelete = events.find((event) => event.id === eventId);
-    const updatedEvents = events.filter((event) => event.id !== eventId);
-
     try {
       await cancelEventNotification(eventToDelete?.notificationId);
-      await AsyncStorage.setItem(EVENT_STORAGE_KEY, JSON.stringify(updatedEvents));
-      setEvents(updatedEvents);
+      await deleteEvent(eventId);
       setActionError('');
       setNotificationMessage('');
     } catch {
@@ -450,7 +438,6 @@ export default function App() {
               {(props) => (
                 <HomeScreen
                   {...props}
-                  events={events}
                   eventsLoading={eventsLoading}
                   notificationsLoading={notificationsLoading}
                   eventsError={eventsError}

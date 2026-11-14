@@ -13,6 +13,7 @@ Proyecto individual para el parcial de Aplicaciones Móviles de ISTEA.
 - Creación de eventos con título, fecha y hora.
 - Listado de eventos ordenados por fecha y opción de eliminarlos.
 - Almacenamiento local con AsyncStorage para conservar la cuenta y los eventos al cerrar la app.
+- Estado global de eventos con Zustand.
 - Notificaciones locales en el horario del evento y cancelación del recordatorio al eliminarlo.
 
 La aplicación no utiliza backend. La autenticación es local y guarda una única cuenta en el dispositivo.
