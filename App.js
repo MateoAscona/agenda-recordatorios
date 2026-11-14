@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
   Button,
+  Image,
   Linking,
   ScrollView,
   StyleSheet,
@@ -28,6 +29,11 @@ import {
   validateEvent,
 } from './events';
 import { useEventsStore } from './eventsStore';
+import { createCalendarEvent } from './calendar';
+import {
+  pickEventImage, saveEventImage, deleteEventImage,
+  getEventLocation, pickEventContact,
+} from './deviceResources';
 import {
   cancelEventNotification,
   getNotificationErrorMessage,
@@ -197,6 +203,8 @@ function HomeScreen({
   actionError,
   notificationMessage,
   onDeleteEvent,
+  onCalendar,
+  calendarBusyId,
 }) {
   const events = useEventsStore((state) => state.events);
   return (
@@ -213,6 +221,9 @@ function HomeScreen({
               key={event.id}
               event={event}
               onDelete={onDeleteEvent}
+              onCalendar={onCalendar}
+              calendarBusy={calendarBusyId === event.id}
+              disabled={calendarBusyId !== null}
             />
           ))}
         </ScrollView>
@@ -235,11 +246,11 @@ function HomeScreen({
       <TouchableOpacity
         style={[styles.primaryButton, eventsError && styles.disabledButton]}
         onPress={() => navigation.navigate('AltaEvento')}
-        disabled={eventsLoading || notificationsLoading || Boolean(eventsError)}
+        disabled={eventsLoading || notificationsLoading || Boolean(eventsError) || calendarBusyId !== null}
       >
         <Text style={styles.primaryButtonText}>Crear evento</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.linkButton} onPress={onLogout}>
+      <TouchableOpacity style={styles.linkButton} onPress={onLogout} disabled={calendarBusyId !== null}>
         <Text style={styles.linkText}>Cerrar sesión</Text>
       </TouchableOpacity>
     </SafeAreaView>
@@ -251,6 +262,22 @@ function CreateEventScreen({ navigation, onCreateEvent }) {
   const [dateTime, setDateTime] = useState(() => new Date(Date.now() + 60 * 60 * 1000));
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [attachments, setAttachments] = useState({});
+  const [resourceLoading, setResourceLoading] = useState(false);
+  const busy = saving || resourceLoading;
+
+  async function attach(field, action) {
+    setResourceLoading(true);
+    setError('');
+    try {
+      const value = await action();
+      if (value) setAttachments((current) => ({ ...current, [field]: value }));
+    } catch (resourceError) {
+      setError(`No se pudo adjuntar el recurso. ${resourceError.message || 'Intentá nuevamente.'}`);
+    } finally {
+      setResourceLoading(false);
+    }
+  }
 
   async function handleCreateEvent() {
     const { date, time } = getEventDateFields(dateTime);
@@ -265,7 +292,7 @@ function CreateEventScreen({ navigation, onCreateEvent }) {
     setError('');
 
     try {
-      await onCreateEvent(createEvent(title, date, time));
+      await onCreateEvent({ ...createEvent(title, date, time), ...attachments });
       navigation.goBack();
     } catch {
       setError('No se pudo guardar el evento.');
@@ -275,7 +302,8 @@ function CreateEventScreen({ navigation, onCreateEvent }) {
   }
 
   return (
-    <SafeAreaView edges={['bottom']} style={styles.container}>
+    <SafeAreaView edges={['bottom']} style={styles.homeContainer}>
+      <ScrollView keyboardShouldPersistTaps="handled">
       <Text style={styles.title}>Nuevo evento</Text>
       <TextInput
         style={styles.input}
@@ -283,25 +311,51 @@ function CreateEventScreen({ navigation, onCreateEvent }) {
         value={title}
         onChangeText={setTitle}
         maxLength={80}
+        editable={!busy}
       />
       <EventDateTimePicker
         value={dateTime}
         onChange={setDateTime}
-        disabled={saving}
+        disabled={busy}
       />
+      <Text style={styles.text}>Datos opcionales</Text>
+      <View style={styles.button}>
+        <Button title="Tomar foto" disabled={busy} onPress={() => attach('imageUri', () => pickEventImage('camera'))} />
+      </View>
+      <View style={styles.button}>
+        <Button title="Elegir de galería" disabled={busy} onPress={() => attach('imageUri', () => pickEventImage('gallery'))} />
+      </View>
+      {attachments.imageUri ? (
+        <>
+          <Image accessibilityLabel="Foto seleccionada" source={{ uri: attachments.imageUri }} style={styles.eventImage} />
+          <Button title="Quitar foto" disabled={busy} onPress={() => setAttachments((current) => ({ ...current, imageUri: null }))} />
+        </>
+      ) : null}
+      <View style={styles.button}>
+        <Button title="Usar ubicación actual" disabled={busy} onPress={() => attach('location', getEventLocation)} />
+      </View>
+      {attachments.location ? (
+        <Text style={styles.text}>Ubicación del dispositivo: {attachments.location.latitude.toFixed(5)}, {attachments.location.longitude.toFixed(5)}</Text>
+      ) : null}
+      <View style={styles.button}>
+        <Button title="Seleccionar contacto" disabled={busy} onPress={() => attach('contact', pickEventContact)} />
+      </View>
+      {attachments.contact ? <Text style={styles.text}>Contacto: {attachments.contact.name}</Text> : null}
+      {resourceLoading ? <Text style={styles.text}>Esperando al dispositivo...</Text> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <TouchableOpacity
-        style={[styles.primaryButton, saving && styles.disabledButton]}
+        style={[styles.primaryButton, busy && styles.disabledButton]}
         onPress={handleCreateEvent}
-        disabled={saving}
+        disabled={busy}
       >
         <Text style={styles.primaryButtonText}>
           {saving ? 'Guardando...' : 'Guardar evento'}
         </Text>
       </TouchableOpacity>
       <View style={styles.button}>
-        <Button title="Volver a la agenda" onPress={() => navigation.goBack()} />
+        <Button title="Volver a la agenda" disabled={busy} onPress={() => navigation.goBack()} />
       </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -311,6 +365,7 @@ export default function App() {
   const events = useEventsStore((state) => state.events);
   const loadEvents = useEventsStore((state) => state.loadEvents);
   const addEvent = useEventsStore((state) => state.addEvent);
+  const updateEvent = useEventsStore((state) => state.updateEvent);
   const deleteEvent = useEventsStore((state) => state.deleteEvent);
   const clearEvents = useEventsStore((state) => state.clearEvents);
   const [eventsLoading, setEventsLoading] = useState(false);
@@ -318,6 +373,9 @@ export default function App() {
   const [actionError, setActionError] = useState('');
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationsLoading, setNotificationsLoading] = useState(true);
+  const [calendarBusyId, setCalendarBusyId] = useState(null);
+  const calendarBusy = useRef(false);
+  const pendingCalendarLinks = useRef({});
 
   useEffect(() => {
     let active = true;
@@ -366,7 +424,7 @@ export default function App() {
     setEventsLoading(true);
     setEventsError('');
 
-    async function loadEvents() {
+    async function hydrateEvents() {
       try {
         await loadEvents(() => active);
       } catch {
@@ -380,13 +438,14 @@ export default function App() {
       }
     }
 
-    loadEvents();
+    hydrateEvents();
     return () => {
       active = false;
     };
   }, [loggedIn]);
 
   async function handleCreateEvent(event) {
+    const imageUri = event.imageUri ? await saveEventImage(event.imageUri) : null;
     let notificationId = null;
     let warning = '';
 
@@ -399,11 +458,12 @@ export default function App() {
       warning = `El evento se guardó sin recordatorio. ${getNotificationErrorMessage(error)}`;
     }
 
-    const savedEvent = { ...event, notificationId };
+    const savedEvent = { ...event, ...(imageUri ? { imageUri } : {}), notificationId };
     try {
       await addEvent(savedEvent);
     } catch (error) {
       await cancelEventNotification(notificationId).catch(() => null);
+      await deleteEventImage(imageUri).catch(() => null);
       throw error;
     }
 
@@ -412,14 +472,43 @@ export default function App() {
   }
 
   async function handleDeleteEvent(eventId) {
+    if (calendarBusy.current) return;
     const eventToDelete = events.find((event) => event.id === eventId);
     try {
       await cancelEventNotification(eventToDelete?.notificationId);
       await deleteEvent(eventId);
       setActionError('');
       setNotificationMessage('');
+      try {
+        await deleteEventImage(eventToDelete?.imageUri);
+      } catch {
+        setActionError('El evento se eliminó, pero no se pudo borrar su foto del dispositivo.');
+      }
     } catch {
       setActionError('No se pudo eliminar el evento o cancelar su recordatorio.');
+    }
+  }
+
+  async function handleCalendar(event) {
+    if (calendarBusy.current || event.calendarEventId) return;
+    calendarBusy.current = true;
+    setCalendarBusyId(event.id);
+    setActionError('');
+    try {
+      if (!pendingCalendarLinks.current[event.id]) {
+        pendingCalendarLinks.current[event.id] = await createCalendarEvent(event);
+      }
+      try {
+        await updateEvent(event.id, pendingCalendarLinks.current[event.id]);
+        delete pendingCalendarLinks.current[event.id];
+      } catch {
+        setActionError('Se agregó al calendario, pero no se pudo guardar el vínculo. Reintentá sin cerrar la app para no duplicarlo.');
+      }
+    } catch (error) {
+      setActionError(`No se pudo agregar al calendario. ${error.message || 'Intentá nuevamente.'}`);
+    } finally {
+      calendarBusy.current = false;
+      setCalendarBusyId(null);
     }
   }
 
@@ -444,6 +533,8 @@ export default function App() {
                   actionError={actionError}
                   notificationMessage={notificationMessage}
                   onDeleteEvent={handleDeleteEvent}
+                  onCalendar={handleCalendar}
+                  calendarBusyId={calendarBusyId}
                   onLogout={() => setLoggedIn(false)}
                 />
               )}
@@ -485,6 +576,12 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  eventImage: {
+    width: '100%',
+    height: 160,
+    borderRadius: 8,
+    marginVertical: 12,
+  },
   homeContainer: {
     flex: 1,
     backgroundColor: '#fff',

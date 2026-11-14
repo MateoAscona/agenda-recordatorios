@@ -23,6 +23,32 @@
     "plugins": [
       "@react-native-community/datetimepicker",
       [
+        "expo-calendar",
+        {
+          "calendarPermission": "Permitir agregar tus eventos al calendario del teléfono."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permitir elegir una foto para un evento.",
+          "cameraPermission": "Permitir tomar una foto para un evento.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Permitir adjuntar tu ubicación actual a un evento."
+        }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Permitir elegir un contacto para un evento."
+        }
+      ],
+      [
         "expo-notifications",
         {
           "icon": "./assets/notification-icon.png",
