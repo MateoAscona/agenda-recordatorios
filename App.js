@@ -4,7 +4,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
-  Button,
   Image,
   Linking,
   ScrollView,
@@ -23,6 +22,9 @@ import {
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import EventItem from './EventItem';
 import EventDateTimePicker from './EventDateTimePicker';
+import ActionButton from './ActionButton';
+import AppIcon from './AppIcon';
+import { colors } from './theme';
 import {
   createEvent,
   getEventDateFields,
@@ -86,46 +88,54 @@ function LoginScreen({ navigation, route, onLogin, notificationMessage }) {
   }
 
   return (
-    <SafeAreaView edges={['bottom']} style={styles.container}>
-      <Text style={styles.title}>Agenda y recordatorios</Text>
-      <Text style={styles.text}>Iniciá sesión para ver tus eventos.</Text>
-      {notificationMessage ? (
-        <Text style={styles.text}>{notificationMessage}</Text>
-      ) : null}
-      {route.params?.registered ? (
-        <Text style={styles.success}>Cuenta creada. Iniciá sesión.</Text>
-      ) : null}
-      <TextInput
-        style={styles.input}
-        placeholder="Usuario"
-        value={username}
-        onChangeText={setUsername}
-        autoCapitalize="none"
-        autoCorrect={false}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Contraseña"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <TouchableOpacity
-        style={[styles.primaryButton, loading && styles.disabledButton]}
-        onPress={handleLogin}
-        disabled={loading}
-      >
-        <Text style={styles.primaryButtonText}>
-          {loading ? 'Ingresando...' : 'Iniciar sesión'}
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.linkButton}
-        onPress={() => navigation.navigate('Registro')}
-      >
-        <Text style={styles.linkText}>Crear una cuenta</Text>
-      </TouchableOpacity>
+    <SafeAreaView edges={['bottom']} style={styles.homeContainer}>
+      <ScrollView contentContainerStyle={styles.authContent} keyboardShouldPersistTaps="handled">
+        <View style={styles.authCard}>
+          <View style={styles.brandMark}><AppIcon name="calendar-outline" size={36} /></View>
+          <Text style={styles.title}>Agenda y recordatorios</Text>
+          <Text style={styles.text}>Iniciá sesión para ver tus eventos.</Text>
+          {notificationMessage ? (
+            <Text style={styles.notice}>{notificationMessage}</Text>
+          ) : null}
+          {route.params?.registered ? (
+            <Text style={styles.success}>Cuenta creada. Iniciá sesión.</Text>
+          ) : null}
+          <Text style={styles.fieldLabel}>Usuario</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Usuario"
+            placeholderTextColor={colors.muted}
+            value={username}
+            onChangeText={setUsername}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <Text style={styles.fieldLabel}>Contraseña</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Contraseña"
+            placeholderTextColor={colors.muted}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <ActionButton
+            title={loading ? 'Ingresando...' : 'Iniciar sesión'}
+            icon="log-in-outline"
+            style={styles.primaryButton}
+            onPress={handleLogin}
+            disabled={loading}
+          />
+          <ActionButton
+            title="Crear una cuenta"
+            icon="person-add-outline"
+            variant="link"
+            style={styles.button}
+            onPress={() => navigation.navigate('Registro')}
+          />
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -156,40 +166,48 @@ function RegisterScreen({ navigation }) {
   }
 
   return (
-    <SafeAreaView edges={['bottom']} style={styles.container}>
-      <Text style={styles.title}>Crear cuenta</Text>
-      <Text style={styles.text}>Elegí un usuario y una contraseña.</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Usuario"
-        value={username}
-        onChangeText={setUsername}
-        autoCapitalize="none"
-        autoCorrect={false}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Contraseña"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <TouchableOpacity
-        style={[styles.primaryButton, loading && styles.disabledButton]}
-        onPress={handleRegister}
-        disabled={loading}
-      >
-        <Text style={styles.primaryButtonText}>
-          {loading ? 'Guardando...' : 'Registrarme'}
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.linkButton}
-        onPress={() => navigation.goBack()}
-      >
-        <Text style={styles.linkText}>Volver al inicio</Text>
-      </TouchableOpacity>
+    <SafeAreaView edges={['bottom']} style={styles.homeContainer}>
+      <ScrollView contentContainerStyle={styles.authContent} keyboardShouldPersistTaps="handled">
+        <View style={styles.authCard}>
+          <View style={styles.brandMark}><AppIcon name="person-add-outline" size={34} /></View>
+          <Text style={styles.title}>Crear cuenta</Text>
+          <Text style={styles.text}>Elegí un usuario y una contraseña.</Text>
+          <Text style={styles.fieldLabel}>Usuario</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Usuario"
+            placeholderTextColor={colors.muted}
+            value={username}
+            onChangeText={setUsername}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          <Text style={styles.fieldLabel}>Contraseña</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Contraseña"
+            placeholderTextColor={colors.muted}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <ActionButton
+            title={loading ? 'Guardando...' : 'Registrarme'}
+            icon="checkmark-circle-outline"
+            style={styles.primaryButton}
+            onPress={handleRegister}
+            disabled={loading}
+          />
+          <ActionButton
+            title="Volver al inicio"
+            icon="arrow-back-outline"
+            variant="link"
+            style={styles.button}
+            onPress={() => navigation.goBack()}
+          />
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -209,13 +227,24 @@ function HomeScreen({
   const events = useEventsStore((state) => state.events);
   return (
     <SafeAreaView edges={['bottom']} style={styles.homeContainer}>
-      <Text style={styles.title}>Mis eventos</Text>
+      <View style={styles.agendaHeader}>
+        <View style={styles.headerDetails}>
+          <Text style={styles.eyebrow}>Agenda personal</Text>
+          <Text style={styles.homeTitle}>Mis eventos</Text>
+          <Text style={styles.headerCaption}>Tus planes, en un solo lugar.</Text>
+        </View>
+        <View style={styles.headerIcon}><AppIcon name="calendar-outline" size={32} color={colors.accent} /></View>
+      </View>
       {eventsLoading ? (
         <Text style={styles.text}>Cargando eventos...</Text>
       ) : eventsError ? null : events.length === 0 ? (
-        <Text style={styles.text}>Todavía no hay eventos para mostrar.</Text>
+        <View style={styles.emptyState}>
+          <View style={styles.brandMark}><AppIcon name="calendar-clear-outline" size={32} /></View>
+          <Text style={styles.emptyTitle}>Tu agenda empieza aquí</Text>
+          <Text style={styles.text}>Todavía no hay eventos para mostrar.</Text>
+        </View>
       ) : (
-        <ScrollView style={styles.eventList}>
+        <ScrollView style={styles.eventList} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
           {events.map((event) => (
             <EventItem
               key={event.id}
@@ -232,7 +261,7 @@ function HomeScreen({
       {actionError ? <Text style={styles.error}>{actionError}</Text> : null}
       {notificationMessage ? (
         <>
-          <Text style={styles.text}>{notificationMessage}</Text>
+          <Text style={styles.notice}>{notificationMessage}</Text>
           {notificationMessage.includes(NOTIFICATION_PERMISSION_MESSAGE) ? (
             <TouchableOpacity
               style={styles.linkButton}
@@ -243,16 +272,14 @@ function HomeScreen({
           ) : null}
         </>
       ) : null}
-      <TouchableOpacity
-        style={[styles.primaryButton, eventsError && styles.disabledButton]}
+      <ActionButton
+        title="Crear evento"
+        icon="add-circle-outline"
+        style={styles.primaryButton}
         onPress={() => navigation.navigate('AltaEvento')}
         disabled={eventsLoading || notificationsLoading || Boolean(eventsError) || calendarBusyId !== null}
-      >
-        <Text style={styles.primaryButtonText}>Crear evento</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.linkButton} onPress={onLogout} disabled={calendarBusyId !== null}>
-        <Text style={styles.linkText}>Cerrar sesión</Text>
-      </TouchableOpacity>
+      />
+      <ActionButton title="Cerrar sesión" icon="log-out-outline" variant="link" style={styles.button} onPress={onLogout} disabled={calendarBusyId !== null} />
     </SafeAreaView>
   );
 }
@@ -303,58 +330,63 @@ function CreateEventScreen({ navigation, onCreateEvent }) {
 
   return (
     <SafeAreaView edges={['bottom']} style={styles.homeContainer}>
-      <ScrollView keyboardShouldPersistTaps="handled">
-      <Text style={styles.title}>Nuevo evento</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Título"
-        value={title}
-        onChangeText={setTitle}
-        maxLength={80}
-        editable={!busy}
-      />
-      <EventDateTimePicker
-        value={dateTime}
-        onChange={setDateTime}
-        disabled={busy}
-      />
-      <Text style={styles.text}>Datos opcionales</Text>
-      <View style={styles.button}>
-        <Button title="Tomar foto" disabled={busy} onPress={() => attach('imageUri', () => pickEventImage('camera'))} />
-      </View>
-      <View style={styles.button}>
-        <Button title="Elegir de galería" disabled={busy} onPress={() => attach('imageUri', () => pickEventImage('gallery'))} />
-      </View>
-      {attachments.imageUri ? (
-        <>
-          <Image accessibilityLabel="Foto seleccionada" source={{ uri: attachments.imageUri }} style={styles.eventImage} />
-          <Button title="Quitar foto" disabled={busy} onPress={() => setAttachments((current) => ({ ...current, imageUri: null }))} />
-        </>
-      ) : null}
-      <View style={styles.button}>
-        <Button title="Usar ubicación actual" disabled={busy} onPress={() => attach('location', getEventLocation)} />
-      </View>
-      {attachments.location ? (
-        <Text style={styles.text}>Ubicación del dispositivo: {attachments.location.latitude.toFixed(5)}, {attachments.location.longitude.toFixed(5)}</Text>
-      ) : null}
-      <View style={styles.button}>
-        <Button title="Seleccionar contacto" disabled={busy} onPress={() => attach('contact', pickEventContact)} />
-      </View>
-      {attachments.contact ? <Text style={styles.text}>Contacto: {attachments.contact.name}</Text> : null}
-      {resourceLoading ? <Text style={styles.text}>Esperando al dispositivo...</Text> : null}
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <TouchableOpacity
-        style={[styles.primaryButton, busy && styles.disabledButton]}
-        onPress={handleCreateEvent}
-        disabled={busy}
-      >
-        <Text style={styles.primaryButtonText}>
-          {saving ? 'Guardando...' : 'Guardar evento'}
-        </Text>
-      </TouchableOpacity>
-      <View style={styles.button}>
-        <Button title="Volver a la agenda" disabled={busy} onPress={() => navigation.goBack()} />
-      </View>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.formContent} showsVerticalScrollIndicator={false}>
+        <View style={styles.formHeading}>
+          <View style={styles.sectionIcon}><AppIcon name="create-outline" size={26} /></View>
+          <View style={styles.headerDetails}>
+            <Text style={styles.formTitle}>Nuevo evento</Text>
+            <Text style={styles.formCaption}>Un lugar para tus próximos planes.</Text>
+          </View>
+        </View>
+        <Text style={styles.fieldLabel}>Nombre del evento</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Título"
+          placeholderTextColor={colors.muted}
+          value={title}
+          onChangeText={setTitle}
+          maxLength={80}
+          editable={!busy}
+        />
+        <EventDateTimePicker
+          value={dateTime}
+          onChange={setDateTime}
+          disabled={busy}
+        />
+        <Text style={styles.sectionTitle}>Datos opcionales</Text>
+        <Text style={styles.formCaption}>Agrega una foto, ubicación o contacto.</Text>
+        <View style={styles.attachmentGrid}>
+          <ActionButton title="Tomar foto" icon="camera-outline" variant="secondary" style={styles.attachmentButton} disabled={busy} onPress={() => attach('imageUri', () => pickEventImage('camera'))} />
+          <ActionButton title="Elegir de galería" icon="images-outline" variant="secondary" style={styles.attachmentButton} disabled={busy} onPress={() => attach('imageUri', () => pickEventImage('gallery'))} />
+        </View>
+        {attachments.imageUri ? (
+          <>
+            <Image accessibilityLabel="Foto seleccionada" source={{ uri: attachments.imageUri }} style={styles.eventImage} />
+            <ActionButton title="Quitar foto" icon="close-circle-outline" variant="link" disabled={busy} onPress={() => setAttachments((current) => ({ ...current, imageUri: null }))} />
+          </>
+        ) : null}
+        <View style={styles.button}>
+          <ActionButton title="Usar ubicación actual" icon="location-outline" variant="secondary" disabled={busy} onPress={() => attach('location', getEventLocation)} />
+        </View>
+        {attachments.location ? (
+          <Text style={styles.selectedData}>Ubicación del dispositivo: {attachments.location.latitude.toFixed(5)}, {attachments.location.longitude.toFixed(5)}</Text>
+        ) : null}
+        <View style={styles.button}>
+          <ActionButton title="Seleccionar contacto" icon="person-outline" variant="secondary" disabled={busy} onPress={() => attach('contact', pickEventContact)} />
+        </View>
+        {attachments.contact ? <Text style={styles.selectedData}>Contacto: {attachments.contact.name}</Text> : null}
+        {resourceLoading ? <Text style={styles.text}>Esperando al dispositivo...</Text> : null}
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+        <ActionButton
+          title={saving ? 'Guardando...' : 'Guardar evento'}
+          icon="checkmark-circle-outline"
+          style={styles.primaryButton}
+          onPress={handleCreateEvent}
+          disabled={busy}
+        />
+        <View style={styles.button}>
+          <ActionButton title="Volver a la agenda" icon="arrow-back-outline" variant="link" disabled={busy} onPress={() => navigation.goBack()} />
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -515,11 +547,18 @@ export default function App() {
   return (
     <SafeAreaProvider>
     <NavigationContainer>
-      <StatusBar style="auto" />
+      <StatusBar style="dark" />
       <Stack.Navigator
         key={loggedIn ? 'agenda' : 'acceso'}
         initialRouteName={loggedIn ? 'Home' : 'Login'}
-        screenOptions={{ headerTitleAlign: 'center' }}
+        screenOptions={{
+          headerTitleAlign: 'center',
+          headerTintColor: colors.primary,
+          headerStyle: { backgroundColor: colors.background },
+          headerTitleStyle: { fontSize: 17, fontWeight: '600' },
+          headerShadowVisible: false,
+          contentStyle: { backgroundColor: colors.background },
+        }}
       >
         {loggedIn ? (
           <>
@@ -578,79 +617,159 @@ export default function App() {
 const styles = StyleSheet.create({
   eventImage: {
     width: '100%',
-    height: 160,
-    borderRadius: 8,
+    height: 200,
+    borderRadius: 18,
     marginVertical: 12,
   },
   homeContainer: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+  },
+  authContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingVertical: 24,
+  },
+  authCard: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 24,
     padding: 24,
   },
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
+  brandMark: {
+    width: 76,
+    height: 76,
+    borderRadius: 24,
+    backgroundColor: colors.primarySoft,
+    alignSelf: 'center',
+    alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 12,
+    fontSize: 26,
+    lineHeight: 33,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 10,
     textAlign: 'center',
   },
   text: {
-    fontSize: 16,
+    fontSize: 15,
+    lineHeight: 22,
+    color: colors.muted,
     marginBottom: 16,
     textAlign: 'center',
   },
+  agendaHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    padding: 20,
+    borderRadius: 24,
+    backgroundColor: colors.primaryDark,
+    marginBottom: 18,
+  },
+  headerDetails: { flex: 1 },
+  eyebrow: { color: '#BFD6C8', fontSize: 12, fontWeight: '600', marginBottom: 6 },
+  homeTitle: { color: colors.surface, fontSize: 28, lineHeight: 34, fontWeight: '700', marginBottom: 6 },
+  headerCaption: { color: '#D3E4DA', fontSize: 13, lineHeight: 19 },
+  headerIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    backgroundColor: '#2B5545',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 20,
+    padding: 24,
+  },
+  emptyTitle: { fontSize: 19, fontWeight: '600', color: colors.text, marginBottom: 10, textAlign: 'center' },
   eventList: {
     flex: 1,
   },
-  input: {
-    borderColor: '#999',
-    borderRadius: 6,
-    borderWidth: 1,
-    fontSize: 16,
-    marginTop: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  button: {
-    marginTop: 16,
-  },
-  primaryButton: {
+  listContent: { paddingBottom: 8 },
+  formContent: { paddingBottom: 20 },
+  formHeading: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 18 },
+  sectionIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: colors.primarySoft,
     alignItems: 'center',
-    backgroundColor: '#397253',
-    borderRadius: 6,
-    marginTop: 16,
-    paddingVertical: 12,
+    justifyContent: 'center',
   },
-  primaryButtonText: {
-    color: '#fff',
+  formTitle: { fontSize: 24, lineHeight: 30, fontWeight: '700', color: colors.text },
+  formCaption: { fontSize: 14, lineHeight: 20, color: colors.muted },
+  fieldLabel: { fontSize: 13, fontWeight: '600', color: colors.text, marginTop: 16, marginBottom: 8 },
+  input: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: 14,
+    borderWidth: 1,
+    color: colors.text,
     fontSize: 16,
-    fontWeight: '600',
+    minHeight: 52,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
   },
-  disabledButton: {
-    opacity: 0.6,
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.text, marginTop: 26, marginBottom: 6 },
+  attachmentGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 14 },
+  attachmentButton: { flex: 1, minWidth: 130 },
+  selectedData: {
+    backgroundColor: colors.primarySoft,
+    color: colors.primary,
+    fontSize: 13,
+    lineHeight: 20,
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 10,
   },
+  button: { marginTop: 10 },
+  primaryButton: { marginTop: 20 },
   linkButton: {
     alignItems: 'center',
-    marginTop: 16,
-    paddingVertical: 10,
+    marginTop: 8,
+    paddingVertical: 12,
   },
   linkText: {
-    color: '#397253',
-    fontSize: 15,
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '600',
   },
   error: {
-    color: '#b42318',
+    color: colors.danger,
+    backgroundColor: colors.dangerSoft,
+    borderRadius: 12,
+    padding: 12,
+    lineHeight: 20,
     marginTop: 12,
-    textAlign: 'center',
   },
   success: {
-    color: '#397253',
-    marginBottom: 4,
+    color: colors.primary,
+    backgroundColor: colors.primarySoft,
+    borderRadius: 12,
+    padding: 12,
+    lineHeight: 20,
     textAlign: 'center',
+  },
+  notice: {
+    color: colors.noticeText,
+    backgroundColor: colors.notice,
+    borderRadius: 12,
+    padding: 12,
+    lineHeight: 20,
+    marginVertical: 12,
   },
 });

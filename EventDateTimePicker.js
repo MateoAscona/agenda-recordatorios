@@ -1,6 +1,9 @@
 import { useState } from 'react';
-import { Button, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import ActionButton from './ActionButton';
+import AppIcon from './AppIcon';
+import { colors } from './theme';
 
 export default function EventDateTimePicker({ value, onChange, disabled = false }) {
   const [mode, setMode] = useState(null);
@@ -39,6 +42,7 @@ export default function EventDateTimePicker({ value, onChange, disabled = false 
 
   return (
     <View>
+      <View style={styles.row}>
       <TouchableOpacity
         accessibilityRole="button"
         accessibilityLabel="Elegir fecha"
@@ -46,7 +50,10 @@ export default function EventDateTimePicker({ value, onChange, disabled = false 
         onPress={() => openPicker('date')}
         disabled={disabled}
       >
-        <Text style={styles.label}>Fecha</Text>
+        <View style={styles.fieldHeading}>
+          <AppIcon name="calendar-outline" size={17} />
+          <Text style={styles.label}>Fecha</Text>
+        </View>
         <Text style={styles.value}>{value.toLocaleDateString('es-AR')}</Text>
       </TouchableOpacity>
       <TouchableOpacity
@@ -56,13 +63,17 @@ export default function EventDateTimePicker({ value, onChange, disabled = false 
         onPress={() => openPicker('time')}
         disabled={disabled}
       >
-        <Text style={styles.label}>Hora</Text>
+        <View style={styles.fieldHeading}>
+          <AppIcon name="time-outline" size={17} />
+          <Text style={styles.label}>Hora</Text>
+        </View>
         <Text style={styles.value}>
           {value.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false })}
         </Text>
       </TouchableOpacity>
+      </View>
       {mode ? (
-        <View>
+        <View style={styles.pickerPanel}>
           <DateTimePicker
             value={value}
             mode={mode}
@@ -71,7 +82,7 @@ export default function EventDateTimePicker({ value, onChange, disabled = false 
             onValueChange={(_, selectedDate) => selectValue(mode, selectedDate)}
             onDismiss={() => setMode(null)}
           />
-          <Button title="Listo" onPress={() => setMode(null)} />
+          <ActionButton title="Listo" icon="checkmark-outline" onPress={() => setMode(null)} />
         </View>
       ) : null}
     </View>
@@ -79,22 +90,27 @@ export default function EventDateTimePicker({ value, onChange, disabled = false 
 }
 
 const styles = StyleSheet.create({
+  row: { flexDirection: 'row', gap: 12, marginTop: 16 },
   field: {
-    borderColor: '#999',
-    borderRadius: 6,
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: 16,
     borderWidth: 1,
-    marginTop: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    padding: 14,
+    minHeight: 88,
   },
+  fieldHeading: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 10 },
   label: {
-    color: '#555',
-    fontSize: 14,
-    marginBottom: 4,
+    color: colors.muted,
+    fontSize: 13,
   },
   value: {
     fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
   },
+  pickerPanel: { backgroundColor: colors.surface, borderRadius: 16, padding: 12, marginTop: 12 },
   disabled: {
     opacity: 0.6,
   },

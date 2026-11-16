@@ -1,87 +1,126 @@
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { formatEventDate } from './events';
+import ActionButton from './ActionButton';
+import AppIcon from './AppIcon';
+import { colors } from './theme';
 
 export default function EventItem({ event, onDelete, onCalendar, calendarBusy = false, disabled = false }) {
   return (
     <View style={styles.container}>
-      <View style={styles.details}>
+      <View style={styles.header}>
         <Text style={styles.title}>{event.title}</Text>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={`Eliminar ${event.title}`}
+          style={[styles.deleteButton, disabled && styles.disabled]}
+          disabled={disabled}
+          onPress={() => onDelete(event.id)}
+        >
+          <AppIcon name="trash-outline" size={17} color={colors.danger} />
+          <Text style={styles.deleteText}>Eliminar</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.dateRow}>
+        <AppIcon name="time-outline" size={16} color={colors.muted} />
         <Text style={styles.date}>{formatEventDate(event.date)}</Text>
+      </View>
         {event.imageUri ? (
           <Image accessibilityLabel={`Foto de ${event.title}`} source={{ uri: event.imageUri }} style={styles.image} />
         ) : null}
         {event.location ? (
-          <Text style={styles.date}>Ubicación: {event.location.latitude.toFixed(5)}, {event.location.longitude.toFixed(5)}</Text>
+          <View style={styles.metadata}>
+            <AppIcon name="location-outline" size={17} />
+            <Text style={styles.metadataText}>Ubicación: {event.location.latitude.toFixed(5)}, {event.location.longitude.toFixed(5)}</Text>
+          </View>
         ) : null}
         {event.contact ? (
-          <Text style={styles.date}>Contacto: {event.contact.name}{event.contact.phone ? ` (${event.contact.phone})` : ''}</Text>
+          <View style={styles.metadata}>
+            <AppIcon name="person-outline" size={17} />
+            <Text style={styles.metadataText}>Contacto: {event.contact.name}{event.contact.phone ? ` (${event.contact.phone})` : ''}</Text>
+          </View>
         ) : null}
         {onCalendar ? (
-          <TouchableOpacity
-            accessibilityRole="button"
+          <ActionButton
+            title={event.calendarEventId ? 'Ya agregado al calendario' : calendarBusy ? 'Agregando...' : 'Agregar al calendario'}
+            icon={event.calendarEventId ? 'checkmark-circle-outline' : 'calendar-outline'}
+            variant="secondary"
             accessibilityLabel={`Agregar ${event.title} al calendario`}
             style={styles.calendarButton}
             disabled={disabled || Boolean(event.calendarEventId)}
             onPress={() => onCalendar(event)}
-          >
-            <Text style={styles.calendarText}>
-              {event.calendarEventId ? 'Ya agregado al calendario' : calendarBusy ? 'Agregando...' : 'Agregar al calendario'}
-            </Text>
-          </TouchableOpacity>
+          />
         ) : null}
-      </View>
-      <TouchableOpacity
-        accessibilityRole="button"
-        accessibilityLabel={`Eliminar ${event.title}`}
-        style={styles.deleteButton}
-        disabled={disabled}
-        onPress={() => onDelete(event.id)}
-      >
-        <Text style={styles.deleteText}>Eliminar</Text>
-      </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   calendarButton: {
-    paddingVertical: 10,
-  },
-  calendarText: {
-    color: '#397253',
+    marginTop: 14,
   },
   image: {
     width: '100%',
-    height: 140,
-    borderRadius: 6,
-    marginTop: 10,
+    height: 180,
+    borderRadius: 14,
+    marginTop: 14,
   },
   container: {
-    alignItems: 'center',
-    backgroundColor: '#f5f7f5',
-    borderRadius: 8,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-    padding: 14,
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 14,
+    padding: 18,
+    shadowColor: colors.primaryDark,
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 1,
   },
-  details: {
-    flex: 1,
-    marginRight: 12,
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 10,
   },
   title: {
-    color: '#222',
-    fontSize: 16,
-    fontWeight: '600',
+    color: colors.text,
+    fontSize: 18,
+    lineHeight: 25,
+    fontWeight: '700',
+    flex: 1,
+    paddingTop: 8,
   },
+  dateRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 8 },
   date: {
-    color: '#555',
-    marginTop: 6,
+    color: colors.muted,
+    fontSize: 13,
+    lineHeight: 20,
+    flex: 1,
   },
+  metadata: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.primarySoft,
+    padding: 10,
+    borderRadius: 12,
+    marginTop: 10,
+  },
+  metadataText: { color: colors.primary, fontSize: 13, lineHeight: 20, flex: 1 },
   deleteButton: {
-    padding: 8,
+    minHeight: 44,
+    paddingHorizontal: 9,
+    borderRadius: 12,
+    backgroundColor: colors.dangerSoft,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
   },
   deleteText: {
-    color: '#b42318',
+    color: colors.danger,
+    fontSize: 12,
+    fontWeight: '600',
   },
+  disabled: { opacity: 0.45 },
 });
