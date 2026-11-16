@@ -60,7 +60,7 @@ Estas integraciones requieren Android o iOS. Para probarlas con Expo Go se neces
 
 ## Tests
 
-Las pruebas versionadas utilizan Jest y React Native Testing Library. Incluyen validación de credenciales y eventos, interacción con componentes y persistencia del estado.
+Las 8 pruebas utilizan Jest y React Native Testing Library. Incluyen validación de credenciales y eventos e interacción con un componente.
 
 Para ejecutarlas:
 
@@ -74,7 +74,6 @@ Los tests contemplan:
  - Eventos (4): validan campos obligatorios y fechas, crean y ordenan eventos, y conservan la fecha y hora locales.
  - Item de Evento (1): muestra el título y comprueba que el botón “Eliminar” llame a la función
    correspondiente.
- - Estado de eventos (3): carga datos previos, persiste los cambios y maneja fallos de almacenamiento o una sesión cerrada durante la carga.
 
 ## Verificación en teléfono
 
