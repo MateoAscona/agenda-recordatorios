@@ -6,6 +6,7 @@ Proyecto individual para el parcial de Aplicaciones Móviles de ISTEA.
 
 **Opción elegida:** Agenda / Recordatorios
 
+
 ## Funcionalidades
 
 - Registro e inicio de sesión con usuario y contraseña.
@@ -61,6 +62,38 @@ El botón **Agregar al calendario** utiliza un calendario que permita escritura 
 Si el calendario se crea pero falla el almacenamiento del vínculo, el mensaje indica reintentar sin cerrar la app. Ese reintento guarda el vínculo sin crear otra copia. Si se cierra la app antes de resolverlo, debe revisarse el calendario antes de exportar otra vez.
 
 Estas integraciones requieren Android o iOS. Para probarlas con Expo Go se necesita una versión compatible con SDK 57; los textos de permisos de una compilación propia requieren reconstruirla al cambiar la configuración.
+
+## Uso de inteligencia artificial
+
+Para acompañar el desarrollo se utilizó **Codex** junto con **Gentle AI**. Codex actuó como asistente de desarrollo para analizar el proyecto, proponer cambios, escribir código y ejecutar verificaciones. Gentle AI aportó las reglas de trabajo y la coordinación del proceso para mantener cada cambio dentro del alcance acordado.
+
+El trabajo siguió una versión liviana de **ODD (Organic Driven Development)**: comprender primero el problema, revisar el código existente, resolver las decisiones necesarias, implementar cambios pequeños y verificarlos antes de avanzar. Este enfoque evitó aplicar soluciones sin contexto y permitió conservar una relación clara entre cada requerimiento, su implementación y su validación.
+
+También se utilizó **Engram** como memoria persistente del proyecto. Su función fue conservar decisiones, restricciones y hallazgos relevantes entre sesiones, sin reemplazar el código, el historial de Git ni la revisión humana.
+
+El proceso de desarrollo fue el siguiente:
+
+1. Análisis de los requerimientos y del estado actual de la aplicación.
+2. Evaluación de alternativas y toma de decisiones técnicas según el alcance del proyecto.
+3. Desarrollo asistido por agentes, con cambios acotados y verificaciones automáticas cuando correspondía.
+4. Revisión humana final del comportamiento, los mensajes y la experiencia en el dispositivo.
+5. Registro de los cambios en commits y publicación mediante push una vez aprobada cada entrega.
+
+La IA se utilizó como herramienta de apoyo. Las decisiones finales, la validación funcional y la responsabilidad sobre el resultado permanecieron a cargo del autor.
+
+### Que es Gentle-AI?
+
+**Gentle-AI** es un entorno que potencia el desarrollo asistido por IA mediante metodologías, herramientas de análisis y mecanismos de control, sin reemplazar la supervisión humana.
+
+Sus principales componentes son:
+- **ODD (Organic Driven Development):** Metodología que organiza el desarrollo según la complejidad y los riesgos de cada tarea.
+- **Engram:** Memoria persistente que conserva decisiones técnicas y contexto entre sesiones.
+- **CodeGraph:** Analiza la estructura del código y sus dependencias para facilitar su comprensión.
+- **RDD (Receipt-Driven Development):** Promueve verificaciones basadas en evidencias para validar los cambios.
+- **Skills:** Incorporan conocimientos y procedimientos especializados reutilizables.
+- **Orquestación multiagente:** Permite distribuir tareas entre agentes especializados.
+
+En conjunto, Gentle-AI estructura el trabajo de los agentes, mientras que **el desarrollador mantiene el control de las decisiones técnicas, la revisión y la validación final del código**.
 
 ## Tests
 
