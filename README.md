@@ -10,13 +10,13 @@ Proyecto individual para el parcial de Aplicaciones Móviles de ISTEA.
 
 - Registro e inicio de sesión con usuario y contraseña.
 - Acceso a la agenda únicamente después de iniciar sesión.
-- Creación y edición de eventos con título, fecha y hora futura.
+- Creación de eventos con título, fecha y hora.
 - Listado de eventos ordenados por fecha y opción de eliminarlos.
 - Almacenamiento local con AsyncStorage para conservar la cuenta y los eventos al cerrar la app.
 - Estado global de eventos con Zustand.
 - Notificaciones locales en el horario del evento y cancelación del recordatorio al eliminarlo.
 - Foto tomada con la cámara o elegida de la galería, guardada en archivos de la app.
-- Ubicación actual con ciudad y provincia cuando están disponibles, y contacto opcional, visibles en la agenda.
+- Ubicación actual y contacto opcionales, visibles en la agenda.
 - Exportación al calendario del teléfono, con una duración de 30 minutos.
 
 La aplicación no utiliza backend. La autenticación es local y guarda una única cuenta en el dispositivo.
@@ -50,13 +50,9 @@ Si las notificaciones están desactivadas o no se puede programar el aviso, el e
 
 Los permisos se solicitan al usar cada función. Si se rechazan, la app muestra un mensaje y permite seguir creando eventos básicos. Pueden habilitarse desde los ajustes del teléfono.
 
-Cada recurso muestra su propio aviso con un icono y una explicación. Si el permiso está bloqueado, el aviso permite abrir los ajustes. Una solicitud sin respuesta tiene un límite de espera de 15 segundos; también puede usarse **Cancelar espera** para continuar sin perder los datos del formulario. Al pulsar nuevamente el botón del recurso, la app consulta el permiso actual e inicia una solicitud nueva si el sistema permite volver a pedirlo. No reutiliza una espera cancelada. Cancelar la espera en la app no cierra una ventana de permisos que siga abierta en el sistema.
+La ubicación corresponde al dispositivo en el momento de capturarla; no hay seguimiento en segundo plano. Del contacto se guarda su nombre y, si tiene, un teléfono.
 
-La ubicación corresponde al dispositivo en el momento de capturarla; no hay seguimiento en segundo plano. La app intenta identificar solamente la ciudad y provincia mediante el servicio de ubicación del teléfono, sin claves de API ni backend propio. La consulta puede necesitar conexión y no siempre encuentra un resultado: si falla o tarda más de 4 segundos, se conservan las coordenadas. Los eventos anteriores siguen siendo compatibles; puede capturarse nuevamente su ubicación al editarlos. Del contacto se guarda su nombre y, si tiene, un teléfono.
-
-El botón **Editar evento** permite cambiar el título, la fecha, la hora y los datos opcionales, o quitar una foto, ubicación o contacto. Volver a la agenda sin guardar no modifica el evento. Si cambia el título u horario, se reemplaza su recordatorio; si falla la notificación, los cambios se guardan igualmente y se muestra un aviso. Si no se logra cancelar un aviso anterior, su identificador se conserva para reintentar al guardar o eliminar el evento.
-
-El botón **Agregar al calendario** utiliza un calendario que permita escritura y conserva el vínculo para no volver a exportar el mismo evento. Si no hay calendarios disponibles, es necesario configurar uno en el teléfono. Editar o eliminar un evento de la agenda no modifica el calendario externo: los cambios se guardan solo en la app.
+El botón **Agregar al calendario** utiliza un calendario que permita escritura y conserva el vínculo para no volver a exportar el mismo evento. Si no hay calendarios disponibles, es necesario configurar uno en el teléfono. Eliminar un evento de la agenda no lo elimina del calendario externo.
 
 Si el calendario se crea pero falla el almacenamiento del vínculo, el mensaje indica reintentar sin cerrar la app. Ese reintento guarda el vínculo sin crear otra copia. Si se cierra la app antes de resolverlo, debe revisarse el calendario antes de exportar otra vez.
 
@@ -85,9 +81,6 @@ Los tests contemplan:
 - Adjuntar una foto de cámara y otra de galería; reiniciar la app y comprobar que se ven.
 - Capturar ubicación y elegir un contacto; comprobar sus datos en la agenda.
 - Rechazar los permisos y desactivar el GPS: deben aparecer mensajes sin perder el formulario.
-- Cerrar una solicitud de permiso con Atrás, cancelar la espera y pulsar nuevamente el recurso: debe realizarse un intento nuevo, sin aplicar resultados del intento cancelado.
-- Editar un evento, cambiar su título y horario, quitar o reemplazar datos opcionales y reiniciar la app: deben conservarse los cambios y el identificador del evento.
-- Editar sin guardar: el evento original debe permanecer igual. Comprobar ciudad y provincia con conexión y la alternativa de coordenadas si no se identifican.
 - Agregar un evento al calendario y comprobar título, horario y que no se exporta dos veces.
 - Eliminar un evento y comprobar que se cancela su notificación. Sin permiso de notificaciones, guardar igualmente un evento nuevo.
 

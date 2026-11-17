@@ -2,18 +2,23 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import * as Contacts from 'expo-contacts/legacy';
 import { Directory, File, Paths } from 'expo-file-system';
-import { requestDevicePermission, resourceError, waitForDeviceResult } from './devicePermissions';
 
-export async function pickEventImage(source, options = {}) {
+function requirePermission(permission, resource) {
+  if (!permission.granted) {
+    throw new Error(`No se concedió permiso para ${resource}. Podés habilitarlo en Ajustes del teléfono.`);
+  }
+}
+
+export async function pickEventImage(source) {
   const camera = source === 'camera';
-  const resource = camera ? 'camera' : 'gallery';
-  await requestDevicePermission(resource,
-    () => camera ? ImagePicker.getCameraPermissionsAsync() : ImagePicker.getMediaLibraryPermissionsAsync(),
-    () => camera ? ImagePicker.requestCameraPermissionsAsync() : ImagePicker.requestMediaLibraryPermissionsAsync(), options);
-  const pickerOptions = { mediaTypes: ['images'], quality: 0.7 };
-  const result = await waitForDeviceResult(
-    () => camera ? ImagePicker.launchCameraAsync(pickerOptions) : ImagePicker.launchImageLibraryAsync(pickerOptions),
-    resource, { ...options, timeoutMs: 0 });
+  const permission = camera
+    ? await ImagePicker.requestCameraPermissionsAsync()
+    : await ImagePicker.requestMediaLibraryPermissionsAsync();
+  requirePermission(permission, camera ? 'la cámara' : 'las fotos');
+  const options = { mediaTypes: ['images'], quality: 0.7 };
+  const result = camera
+    ? await ImagePicker.launchCameraAsync(options)
+    : await ImagePicker.launchImageLibraryAsync(options);
   return result.canceled ? null : result.assets?.[0]?.uri ?? null;
 }
 
@@ -43,29 +48,28 @@ export async function deleteEventImage(uri) {
   if (file.exists) file.delete();
 }
 
-export async function getEventLocation(options = {}) {
-  await requestDevicePermission('location', () => Location.getForegroundPermissionsAsync(), () => Location.requestForegroundPermissionsAsync(), options);
-  const enabled = await waitForDeviceResult(() => Location.hasServicesEnabledAsync(), 'location', { ...options, timeoutReason: 'location-timeout' });
-  if (!enabled) {
-    throw resourceError('location', 'services-disabled');
+export async function getEventLocation() {
+  requirePermission(await Location.requestForegroundPermissionsAsync(), 'la ubicación');
+  if (!await Location.hasServicesEnabledAsync()) {
+    throw new Error('Activá la ubicación del teléfono e intentá nuevamente.');
   }
-  const position = await waitForDeviceResult(
-    () => Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
-    'location', { ...options, timeoutMs: 20000, timeoutReason: 'location-timeout' });
-  const location = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+  let timer;
   try {
-    const [address] = await waitForDeviceResult(
-      () => Location.reverseGeocodeAsync(location), 'location', { ...options, timeoutMs: 4000 });
-    return { ...location, city: address?.city ?? null, region: address?.region ?? null };
-  } catch (error) {
-    if (options.signal?.aborted) throw resourceError('location', 'cancelled');
-    return location;
+    const position = await Promise.race([
+      Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('Se agotó el tiempo para obtener la ubicación. Intentá nuevamente.')), 20000);
+      }),
+    ]);
+    return { latitude: position.coords.latitude, longitude: position.coords.longitude };
+  } finally {
+    clearTimeout(timer);
   }
 }
 
-export async function pickEventContact(options = {}) {
-  await requestDevicePermission('contacts', () => Contacts.getPermissionsAsync(), () => Contacts.requestPermissionsAsync(), options);
-  const contact = await waitForDeviceResult(() => Contacts.presentContactPickerAsync(), 'contacts', { ...options, timeoutMs: 0 });
+export async function pickEventContact() {
+  requirePermission(await Contacts.requestPermissionsAsync(), 'los contactos');
+  const contact = await Contacts.presentContactPickerAsync();
   return contact ? {
     id: contact.id,
     name: contact.name || 'Contacto sin nombre',

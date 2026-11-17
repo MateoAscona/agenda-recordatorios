@@ -5,11 +5,12 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import {
   Image,
-  BackHandler,
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import {
@@ -24,11 +25,8 @@ import EventDateTimePicker from './EventDateTimePicker';
 import ActionButton from './ActionButton';
 import AppIcon from './AppIcon';
 import { colors } from './theme';
-import ResourceNotice from './ResourceNotice';
-import { getResourceNotice, resourceDetails, resourceError } from './devicePermissions';
 import {
   createEvent,
-  formatEventLocation,
   getEventDateFields,
   validateEvent,
 } from './events';
@@ -40,8 +38,6 @@ import {
 } from './deviceResources';
 import {
   cancelEventNotification,
-  cancelEventNotifications,
-  getEventNotificationIds,
   getNotificationErrorMessage,
   requestNotificationPermission,
   scheduleEventNotification,
@@ -49,9 +45,10 @@ import {
 import * as Notifications from './localNotifications';
 
 const Stack = createNativeStackNavigator();
-const NOTIFICATION_PERMISSION_MESSAGE = resourceDetails.notifications.denied;
+const NOTIFICATION_PERMISSION_MESSAGE =
+  'Las notificaciones están desactivadas. Habilitalas en Ajustes del teléfono (Expo Go si abrís la app allí).';
 
-function LoginScreen({ navigation, route, onLogin, notificationMessage, onDismissNotification }) {
+function LoginScreen({ navigation, route, onLogin, notificationMessage }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -98,7 +95,7 @@ function LoginScreen({ navigation, route, onLogin, notificationMessage, onDismis
           <Text style={styles.title}>Agenda y recordatorios</Text>
           <Text style={styles.text}>Iniciá sesión para ver tus eventos.</Text>
           {notificationMessage ? (
-            <ResourceNotice notice={{ resource: 'notifications', message: notificationMessage, showSettings: notificationMessage.includes(NOTIFICATION_PERMISSION_MESSAGE) }} onDismiss={onDismissNotification} />
+            <Text style={styles.notice}>{notificationMessage}</Text>
           ) : null}
           {route.params?.registered ? (
             <Text style={styles.success}>Cuenta creada. Iniciá sesión.</Text>
@@ -226,10 +223,6 @@ function HomeScreen({
   onDeleteEvent,
   onCalendar,
   calendarBusyId,
-  eventsSaving,
-  permissionNotice,
-  onDismissPermissionNotice,
-  onDismissNotification,
 }) {
   const events = useEventsStore((state) => state.events);
   return (
@@ -258,106 +251,62 @@ function HomeScreen({
               event={event}
               onDelete={onDeleteEvent}
               onCalendar={onCalendar}
-              onEdit={(eventId) => navigation.navigate('EditarEvento', { eventId })}
               calendarBusy={calendarBusyId === event.id}
-              disabled={eventsSaving || calendarBusyId !== null}
+              disabled={calendarBusyId !== null}
             />
           ))}
         </ScrollView>
       )}
       {eventsError ? <Text style={styles.error}>{eventsError}</Text> : null}
       {actionError ? <Text style={styles.error}>{actionError}</Text> : null}
-      {permissionNotice ? <ResourceNotice notice={permissionNotice} onDismiss={onDismissPermissionNotice} /> : null}
       {notificationMessage ? (
-        <ResourceNotice notice={{ resource: 'notifications', message: notificationMessage, showSettings: notificationMessage.includes(NOTIFICATION_PERMISSION_MESSAGE) }} onDismiss={onDismissNotification} />
+        <>
+          <Text style={styles.notice}>{notificationMessage}</Text>
+          {notificationMessage.includes(NOTIFICATION_PERMISSION_MESSAGE) ? (
+            <TouchableOpacity
+              style={styles.linkButton}
+              onPress={() => Linking.openSettings().catch(() => {})}
+            >
+              <Text style={styles.linkText}>Abrir ajustes de notificaciones</Text>
+            </TouchableOpacity>
+          ) : null}
+        </>
       ) : null}
       <ActionButton
         title="Crear evento"
         icon="add-circle-outline"
         style={styles.primaryButton}
         onPress={() => navigation.navigate('AltaEvento')}
-        disabled={eventsLoading || notificationsLoading || Boolean(eventsError) || eventsSaving || calendarBusyId !== null}
+        disabled={eventsLoading || notificationsLoading || Boolean(eventsError) || calendarBusyId !== null}
       />
-      <ActionButton title="Cerrar sesión" icon="log-out-outline" variant="link" style={styles.button} onPress={onLogout} disabled={eventsSaving || calendarBusyId !== null} />
+      <ActionButton title="Cerrar sesión" icon="log-out-outline" variant="link" style={styles.button} onPress={onLogout} disabled={calendarBusyId !== null} />
     </SafeAreaView>
   );
 }
 
-function CreateEventScreen({ navigation, route, onCreateEvent, onUpdateEvent }) {
-  const eventId = route?.params?.eventId;
-  const editing = Boolean(eventId);
-  const event = useEventsStore((state) => state.events.find((item) => item.id === eventId));
-  const [title, setTitle] = useState(event?.title ?? '');
-  const [dateTime, setDateTime] = useState(() => event ? new Date(event.date) : new Date(Date.now() + 60 * 60 * 1000));
+function CreateEventScreen({ navigation, onCreateEvent }) {
+  const [title, setTitle] = useState('');
+  const [dateTime, setDateTime] = useState(() => new Date(Date.now() + 60 * 60 * 1000));
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
-  const [attachments, setAttachments] = useState(() => event ? {
-    imageUri: event.imageUri ?? null,
-    location: event.location ?? null,
-    contact: event.contact ?? null,
-  } : {});
-  const [resourceLoading, setResourceLoading] = useState(null);
-  const [resourceNotice, setResourceNotice] = useState(null);
-  const resourceOperation = useRef(null);
-  const submitting = useRef(false);
-  const mounted = useRef(true);
-  const busy = saving || Boolean(resourceLoading);
+  const [attachments, setAttachments] = useState({});
+  const [resourceLoading, setResourceLoading] = useState(false);
+  const busy = saving || resourceLoading;
 
-  function cancelAttachment() {
-    const operation = resourceOperation.current;
-    if (!operation) return;
-    resourceOperation.current = null;
-    operation.controller.abort();
-    setResourceLoading(null);
-    setResourceNotice(getResourceNotice(operation.resource, resourceError(operation.resource, 'cancelled')));
-  }
-
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-      resourceOperation.current?.controller.abort();
-      resourceOperation.current = null;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!resourceLoading) return undefined;
-    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-      cancelAttachment();
-      return true;
-    });
-    return () => subscription.remove();
-  }, [resourceLoading]);
-
-  async function attach(field, resource, action) {
-    if (resourceOperation.current || saving) return;
-    const operation = { resource, controller: new AbortController() };
-    resourceOperation.current = operation;
-    setResourceLoading(resource);
-    setResourceNotice(null);
+  async function attach(field, action) {
+    setResourceLoading(true);
     setError('');
     try {
-      const value = await action({ signal: operation.controller.signal });
-      if (resourceOperation.current === operation && value) {
-        setAttachments((current) => ({ ...current, [field]: value }));
-      }
-    } catch (error) {
-      if (resourceOperation.current === operation) setResourceNotice(getResourceNotice(resource, error));
+      const value = await action();
+      if (value) setAttachments((current) => ({ ...current, [field]: value }));
+    } catch (resourceError) {
+      setError(`No se pudo adjuntar el recurso. ${resourceError.message || 'Intentá nuevamente.'}`);
     } finally {
-      if (resourceOperation.current === operation) {
-        resourceOperation.current = null;
-        setResourceLoading(null);
-      }
+      setResourceLoading(false);
     }
   }
 
   async function handleCreateEvent() {
-    if (submitting.current || busy) return;
-    if (editing && !event) {
-      setError('El evento ya no está disponible.');
-      return;
-    }
     const { date, time } = getEventDateFields(dateTime);
     const validationMessage = validateEvent(title, date, time);
 
@@ -366,24 +315,16 @@ function CreateEventScreen({ navigation, route, onCreateEvent, onUpdateEvent }) 
       return;
     }
 
-    submitting.current = true;
     setSaving(true);
     setError('');
 
     try {
-      if (editing) {
-        const updatedDate = new Date(dateTime);
-        updatedDate.setSeconds(0, 0);
-        await onUpdateEvent(eventId, { title: title.trim(), date: updatedDate.toISOString(), ...attachments });
-      } else {
-        await onCreateEvent({ ...createEvent(title, date, time), ...attachments });
-      }
-      if (mounted.current) navigation.goBack();
+      await onCreateEvent({ ...createEvent(title, date, time), ...attachments });
+      navigation.goBack();
     } catch {
-      if (mounted.current) setError(editing ? 'No se pudieron guardar los cambios.' : 'No se pudo guardar el evento.');
+      setError('No se pudo guardar el evento.');
     } finally {
-      submitting.current = false;
-      if (mounted.current) setSaving(false);
+      setSaving(false);
     }
   }
 
@@ -393,13 +334,10 @@ function CreateEventScreen({ navigation, route, onCreateEvent, onUpdateEvent }) 
         <View style={styles.formHeading}>
           <View style={styles.sectionIcon}><AppIcon name="create-outline" size={26} /></View>
           <View style={styles.headerDetails}>
-            <Text style={styles.formTitle}>{editing ? 'Editar evento' : 'Nuevo evento'}</Text>
-            <Text style={styles.formCaption}>{editing ? 'Actualiza los datos de tu evento.' : 'Un lugar para tus próximos planes.'}</Text>
+            <Text style={styles.formTitle}>Nuevo evento</Text>
+            <Text style={styles.formCaption}>Un lugar para tus próximos planes.</Text>
           </View>
         </View>
-        {editing && event?.calendarEventId ? (
-          <Text style={styles.formCaption}>Los cambios se guardan solo en la app. El evento del calendario del teléfono no se modifica.</Text>
-        ) : null}
         <Text style={styles.fieldLabel}>Nombre del evento</Text>
         <TextInput
           style={styles.input}
@@ -418,8 +356,8 @@ function CreateEventScreen({ navigation, route, onCreateEvent, onUpdateEvent }) 
         <Text style={styles.sectionTitle}>Datos opcionales</Text>
         <Text style={styles.formCaption}>Agrega una foto, ubicación o contacto.</Text>
         <View style={styles.attachmentGrid}>
-          <ActionButton title="Tomar foto" icon="camera-outline" variant="secondary" style={styles.attachmentButton} disabled={busy} onPress={() => attach('imageUri', 'camera', (options) => pickEventImage('camera', options))} />
-          <ActionButton title="Elegir de galería" icon="images-outline" variant="secondary" style={styles.attachmentButton} disabled={busy} onPress={() => attach('imageUri', 'gallery', (options) => pickEventImage('gallery', options))} />
+          <ActionButton title="Tomar foto" icon="camera-outline" variant="secondary" style={styles.attachmentButton} disabled={busy} onPress={() => attach('imageUri', () => pickEventImage('camera'))} />
+          <ActionButton title="Elegir de galería" icon="images-outline" variant="secondary" style={styles.attachmentButton} disabled={busy} onPress={() => attach('imageUri', () => pickEventImage('gallery'))} />
         </View>
         {attachments.imageUri ? (
           <>
@@ -428,32 +366,19 @@ function CreateEventScreen({ navigation, route, onCreateEvent, onUpdateEvent }) 
           </>
         ) : null}
         <View style={styles.button}>
-          <ActionButton title="Usar ubicación actual" icon="location-outline" variant="secondary" disabled={busy} onPress={() => attach('location', 'location', getEventLocation)} />
+          <ActionButton title="Usar ubicación actual" icon="location-outline" variant="secondary" disabled={busy} onPress={() => attach('location', getEventLocation)} />
         </View>
         {attachments.location ? (
-          <>
-            <Text style={styles.selectedData}>Ubicación del dispositivo: {formatEventLocation(attachments.location)}</Text>
-            {!attachments.location.city && !attachments.location.region ? (
-              <Text style={styles.formCaption}>No se pudo identificar la ciudad y provincia. Se conservarán las coordenadas.</Text>
-            ) : null}
-            <ActionButton title="Quitar ubicación" icon="close-circle-outline" variant="link" disabled={busy} onPress={() => setAttachments((current) => ({ ...current, location: null }))} />
-          </>
+          <Text style={styles.selectedData}>Ubicación del dispositivo: {attachments.location.latitude.toFixed(5)}, {attachments.location.longitude.toFixed(5)}</Text>
         ) : null}
         <View style={styles.button}>
-          <ActionButton title="Seleccionar contacto" icon="person-outline" variant="secondary" disabled={busy} onPress={() => attach('contact', 'contacts', pickEventContact)} />
+          <ActionButton title="Seleccionar contacto" icon="person-outline" variant="secondary" disabled={busy} onPress={() => attach('contact', pickEventContact)} />
         </View>
         {attachments.contact ? <Text style={styles.selectedData}>Contacto: {attachments.contact.name}</Text> : null}
-        {attachments.contact ? <ActionButton title="Quitar contacto" icon="close-circle-outline" variant="link" disabled={busy} onPress={() => setAttachments((current) => ({ ...current, contact: null }))} /> : null}
-        {resourceLoading ? (
-          <View style={styles.waitingNotice}>
-            <Text style={styles.waitingText}>Esperando respuesta de {resourceDetails[resourceLoading].label}...</Text>
-            <ActionButton title="Cancelar espera" icon="close-circle-outline" variant="secondary" onPress={cancelAttachment} />
-          </View>
-        ) : null}
-        {resourceNotice ? <ResourceNotice notice={resourceNotice} onDismiss={() => setResourceNotice(null)} /> : null}
+        {resourceLoading ? <Text style={styles.text}>Esperando al dispositivo...</Text> : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <ActionButton
-          title={saving ? 'Guardando...' : editing ? 'Guardar cambios' : 'Guardar evento'}
+          title={saving ? 'Guardando...' : 'Guardar evento'}
           icon="checkmark-circle-outline"
           style={styles.primaryButton}
           onPress={handleCreateEvent}
@@ -478,14 +403,11 @@ export default function App() {
   const [eventsLoading, setEventsLoading] = useState(false);
   const [eventsError, setEventsError] = useState('');
   const [actionError, setActionError] = useState('');
-  const [permissionNotice, setPermissionNotice] = useState(null);
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationsLoading, setNotificationsLoading] = useState(true);
   const [calendarBusyId, setCalendarBusyId] = useState(null);
   const calendarBusy = useRef(false);
   const pendingCalendarLinks = useRef({});
-  const eventSaveBusy = useRef(false);
-  const [eventsSaving, setEventsSaving] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -527,7 +449,6 @@ export default function App() {
       setEventsLoading(false);
       setEventsError('');
       setActionError('');
-      setPermissionNotice(null);
       return undefined;
     }
 
@@ -556,108 +477,37 @@ export default function App() {
   }, [loggedIn]);
 
   async function handleCreateEvent(event) {
-    if (eventSaveBusy.current || calendarBusy.current) throw new Error('Hay una operación en curso.');
-    eventSaveBusy.current = true;
-    setEventsSaving(true);
-    try {
-      const imageUri = event.imageUri ? await saveEventImage(event.imageUri) : null;
-      let notificationId = null;
-      let warning = '';
-      try {
-        notificationId = await scheduleEventNotification(event);
-        if (!notificationId) {
-          warning = `El evento se guardó sin recordatorio. ${NOTIFICATION_PERMISSION_MESSAGE}`;
-        }
-      } catch (error) {
-        warning = `El evento se guardó sin recordatorio. ${getNotificationErrorMessage(error)}`;
-      }
-      const savedEvent = { ...event, ...(imageUri ? { imageUri } : {}), notificationId };
-      try {
-        await addEvent(savedEvent);
-      } catch (error) {
-        await cancelEventNotification(notificationId).catch(() => null);
-        await deleteEventImage(imageUri).catch(() => null);
-        throw error;
-      }
-      setActionError('');
-      setNotificationMessage(warning);
-    } finally {
-      eventSaveBusy.current = false;
-      setEventsSaving(false);
-    }
-  }
+    const imageUri = event.imageUri ? await saveEventImage(event.imageUri) : null;
+    let notificationId = null;
+    let warning = '';
 
-  async function handleUpdateEvent(eventId, changes) {
-    if (eventSaveBusy.current || calendarBusy.current) throw new Error('Hay una operación en curso.');
-    const previous = useEventsStore.getState().events.find((event) => event.id === eventId);
-    if (!previous) throw new Error('El evento ya no está disponible.');
-    eventSaveBusy.current = true;
-    setEventsSaving(true);
-    let newImageUri = null;
-    let newNotificationId = null;
-    let persisted = false;
     try {
-      const selectedImage = changes.imageUri === undefined ? previous.imageUri : changes.imageUri;
-      if (selectedImage && selectedImage !== previous.imageUri) {
-        newImageUri = await saveEventImage(selectedImage);
+      notificationId = await scheduleEventNotification(event);
+      if (!notificationId) {
+        warning = `El evento se guardó sin recordatorio. ${NOTIFICATION_PERMISSION_MESSAGE}`;
       }
-      const imageUri = newImageUri || selectedImage || null;
-      const reminderChanged = previous.title !== changes.title || previous.date !== changes.date;
-      let notificationId = previous.notificationId ?? null;
-      let notificationWarning = '';
-      if (reminderChanged) {
-        try {
-          newNotificationId = await scheduleEventNotification({ ...previous, ...changes });
-          if (!newNotificationId) notificationWarning = `El evento se guardó sin recordatorio. ${NOTIFICATION_PERMISSION_MESSAGE}`;
-        } catch (error) {
-          notificationWarning = `El evento se guardó sin recordatorio. ${getNotificationErrorMessage(error)}`;
-        }
-        notificationId = newNotificationId;
-      }
-      const pendingNotificationIds = getEventNotificationIds(previous).filter((id) => id !== notificationId);
-      await updateEvent(eventId, { ...changes, imageUri, notificationId, pendingNotificationIds });
-      persisted = true;
-      const warnings = [];
-      if (pendingNotificationIds.length) {
-        const remaining = await cancelEventNotifications(pendingNotificationIds);
-        if (remaining.length) warnings.push('Los cambios se guardaron, pero quedó un recordatorio anterior pendiente de cancelar. Puedes reintentar guardando el evento o eliminarlo.');
-        if (remaining.length !== pendingNotificationIds.length) {
-          try {
-            await updateEvent(eventId, { pendingNotificationIds: remaining });
-          } catch {
-            warnings.push('Los cambios se guardaron. No se pudo actualizar el registro de recordatorios anteriores; se conservaron sus identificadores.');
-          }
-        }
-      }
-      if (previous.imageUri && previous.imageUri !== imageUri) {
-        try {
-          await deleteEventImage(previous.imageUri);
-        } catch {
-          warnings.push('Los cambios se guardaron, pero no se pudo borrar la foto anterior del dispositivo.');
-        }
-      }
-      setActionError(warnings.join(' '));
-      setNotificationMessage(notificationWarning);
     } catch (error) {
-      if (!persisted) {
-        await cancelEventNotification(newNotificationId).catch(() => null);
-        await deleteEventImage(newImageUri).catch(() => null);
-      }
-      throw error;
-    } finally {
-      eventSaveBusy.current = false;
-      setEventsSaving(false);
+      warning = `El evento se guardó sin recordatorio. ${getNotificationErrorMessage(error)}`;
     }
+
+    const savedEvent = { ...event, ...(imageUri ? { imageUri } : {}), notificationId };
+    try {
+      await addEvent(savedEvent);
+    } catch (error) {
+      await cancelEventNotification(notificationId).catch(() => null);
+      await deleteEventImage(imageUri).catch(() => null);
+      throw error;
+    }
+
+    setActionError('');
+    setNotificationMessage(warning);
   }
 
   async function handleDeleteEvent(eventId) {
-    if (calendarBusy.current || eventSaveBusy.current) return;
-    eventSaveBusy.current = true;
-    setEventsSaving(true);
+    if (calendarBusy.current) return;
     const eventToDelete = events.find((event) => event.id === eventId);
     try {
-      const remaining = await cancelEventNotifications(getEventNotificationIds(eventToDelete));
-      if (remaining.length) throw new Error('No se pudieron cancelar todos los recordatorios.');
+      await cancelEventNotification(eventToDelete?.notificationId);
       await deleteEvent(eventId);
       setActionError('');
       setNotificationMessage('');
@@ -668,18 +518,14 @@ export default function App() {
       }
     } catch {
       setActionError('No se pudo eliminar el evento o cancelar su recordatorio.');
-    } finally {
-      eventSaveBusy.current = false;
-      setEventsSaving(false);
     }
   }
 
   async function handleCalendar(event) {
-    if (calendarBusy.current || eventSaveBusy.current || event.calendarEventId) return;
+    if (calendarBusy.current || event.calendarEventId) return;
     calendarBusy.current = true;
     setCalendarBusyId(event.id);
     setActionError('');
-    setPermissionNotice(null);
     try {
       if (!pendingCalendarLinks.current[event.id]) {
         pendingCalendarLinks.current[event.id] = await createCalendarEvent(event);
@@ -691,11 +537,7 @@ export default function App() {
         setActionError('Se agregó al calendario, pero no se pudo guardar el vínculo. Reintentá sin cerrar la app para no duplicarlo.');
       }
     } catch (error) {
-      if (error.resource === 'calendar') {
-        setPermissionNotice(getResourceNotice('calendar', error));
-      } else {
-        setActionError(`No se pudo agregar al calendario. ${error.message || 'Intentá nuevamente.'}`);
-      }
+      setActionError(`No se pudo agregar al calendario. ${error.message || 'Intentá nuevamente.'}`);
     } finally {
       calendarBusy.current = false;
       setCalendarBusyId(null);
@@ -732,11 +574,7 @@ export default function App() {
                   onDeleteEvent={handleDeleteEvent}
                   onCalendar={handleCalendar}
                   calendarBusyId={calendarBusyId}
-                  eventsSaving={eventsSaving}
-                  permissionNotice={permissionNotice}
-                  onDismissPermissionNotice={() => setPermissionNotice(null)}
-                  onDismissNotification={() => setNotificationMessage('')}
-                  onLogout={() => { if (!eventSaveBusy.current && !calendarBusy.current) setLoggedIn(false); }}
+                  onLogout={() => setLoggedIn(false)}
                 />
               )}
             </Stack.Screen>
@@ -751,11 +589,6 @@ export default function App() {
                 />
               )}
             </Stack.Screen>
-            <Stack.Screen name="EditarEvento" options={{ title: 'Editar evento' }}>
-              {(props) => (
-                <CreateEventScreen {...props} onUpdateEvent={handleUpdateEvent} />
-              )}
-            </Stack.Screen>
           </>
         ) : (
           <>
@@ -764,7 +597,6 @@ export default function App() {
                 <LoginScreen
                   {...props}
                   notificationMessage={notificationMessage}
-                  onDismissNotification={() => setNotificationMessage('')}
                   onLogin={() => setLoggedIn(true)}
                 />
               )}
@@ -783,8 +615,6 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  waitingNotice: { backgroundColor: colors.primarySoft, borderRadius: 16, padding: 14, marginTop: 16, gap: 10 },
-  waitingText: { color: colors.primary, fontSize: 14, lineHeight: 21 },
   eventImage: {
     width: '100%',
     height: 200,
