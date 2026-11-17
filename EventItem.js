@@ -1,10 +1,10 @@
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { formatEventDate } from './events';
+import { formatEventDate, formatEventLocation } from './events';
 import ActionButton from './ActionButton';
 import AppIcon from './AppIcon';
 import { colors } from './theme';
 
-export default function EventItem({ event, onDelete, onCalendar, calendarBusy = false, disabled = false }) {
+export default function EventItem({ event, onDelete, onEdit, onCalendar, calendarBusy = false, disabled = false }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -30,7 +30,7 @@ export default function EventItem({ event, onDelete, onCalendar, calendarBusy = 
         {event.location ? (
           <View style={styles.metadata}>
             <AppIcon name="location-outline" size={17} />
-            <Text style={styles.metadataText}>Ubicación: {event.location.latitude.toFixed(5)}, {event.location.longitude.toFixed(5)}</Text>
+            <Text style={styles.metadataText}>Ubicación: {formatEventLocation(event.location)}</Text>
           </View>
         ) : null}
         {event.contact ? (
@@ -38,6 +38,17 @@ export default function EventItem({ event, onDelete, onCalendar, calendarBusy = 
             <AppIcon name="person-outline" size={17} />
             <Text style={styles.metadataText}>Contacto: {event.contact.name}{event.contact.phone ? ` (${event.contact.phone})` : ''}</Text>
           </View>
+        ) : null}
+        {onEdit ? (
+          <ActionButton
+            title="Editar evento"
+            accessibilityLabel={`Editar ${event.title}`}
+            icon="create-outline"
+            variant="secondary"
+            style={styles.calendarButton}
+            disabled={disabled}
+            onPress={() => onEdit(event.id)}
+          />
         ) : null}
         {onCalendar ? (
           <ActionButton
