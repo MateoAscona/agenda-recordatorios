@@ -1,7 +1,9 @@
 import { Platform } from 'react-native';
 import * as Notifications from './localNotifications';
+import { requestDevicePermission } from './devicePermissions';
 
 export function getNotificationErrorMessage(error) {
+  if (error?.resource === 'notifications') return error.message;
   if (String(error?.message).includes('NotificationsChannelsProvider')) {
     return 'Esta instalación no tiene disponible el canal de recordatorios. Usá una compilación propia de Android con expo-notifications; cambiar los permisos no corrige este problema.';
   }
@@ -28,18 +30,15 @@ async function createNotificationChannel() {
 }
 
 async function hasNotificationPermission() {
-  const permissions = await Notifications.getPermissionsAsync();
-
-  if (permissions.status === 'granted') {
+  try {
+    await requestDevicePermission('notifications',
+      () => Notifications.getPermissionsAsync(),
+      () => Notifications.requestPermissionsAsync());
     return true;
+  } catch (error) {
+    if (['denied', 'dismissed'].includes(error.reason)) return false;
+    throw error;
   }
-
-  if (permissions.canAskAgain === false) {
-    return false;
-  }
-
-  const requestedPermissions = await Notifications.requestPermissionsAsync();
-  return requestedPermissions.status === 'granted';
 }
 
 export async function requestNotificationPermission() {
@@ -72,4 +71,23 @@ export async function cancelEventNotification(notificationId) {
   if (notificationId) {
     await Notifications.cancelScheduledNotificationAsync(notificationId);
   }
+}
+
+export function getEventNotificationIds(event) {
+  return [...new Set([
+    event?.notificationId,
+    ...(Array.isArray(event?.pendingNotificationIds) ? event.pendingNotificationIds : []),
+  ].filter(Boolean))];
+}
+
+export async function cancelEventNotifications(ids) {
+  const remaining = [];
+  for (const id of [...new Set(ids.filter(Boolean))]) {
+    try {
+      await cancelEventNotification(id);
+    } catch {
+      remaining.push(id);
+    }
+  }
+  return remaining;
 }

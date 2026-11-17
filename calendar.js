@@ -1,10 +1,8 @@
 import * as Calendar from 'expo-calendar/legacy';
+import { requestDevicePermission } from './devicePermissions';
 
 export async function createCalendarEvent(event) {
-  const permission = await Calendar.requestCalendarPermissionsAsync();
-  if (!permission.granted) {
-    throw new Error('No se concedió permiso para el calendario. Podés habilitarlo en Ajustes del teléfono.');
-  }
+  await requestDevicePermission('calendar', () => Calendar.getCalendarPermissionsAsync(), () => Calendar.requestCalendarPermissionsAsync());
   const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
   const writable = calendars.filter((calendar) => calendar.allowsModifications);
   const calendar = writable.find((item) => item.isPrimary) || writable[0];

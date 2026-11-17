@@ -82,3 +82,15 @@ export function formatEventDate(date) {
     minute: '2-digit',
   });
 }
+
+export function formatEventLocation(location) {
+  const address = [location?.city, location?.region]
+    .filter((part) => typeof part === 'string' && part.trim())
+    .map((part) => part.trim())
+    .join(', ');
+  if (address) return address;
+  if (Number.isFinite(location?.latitude) && Number.isFinite(location?.longitude)) {
+    return `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}`;
+  }
+  return 'Ubicación no disponible';
+}
